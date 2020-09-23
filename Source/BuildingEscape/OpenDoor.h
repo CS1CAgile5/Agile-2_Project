@@ -4,7 +4,12 @@
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
+#include "Components/AudioComponent.h"
+#include "Components/PrimitiveComponent.h"
 #include "Engine/TriggerVolume.h"
+#include "Engine/World.h"
+#include "GameFramework/Actor.h"
+#include "GameFramework/PlayerController.h"
 #include "OpenDoor.generated.h"
 
 
@@ -16,49 +21,44 @@ class BUILDINGESCAPE_API UOpenDoor : public UActorComponent
 public:	
 	// Sets default values for this component's properties
 	UOpenDoor();
+	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
+	void FindPressurePlate();
+	void FindAudioComponent();
+	void OpenDoor(float DeltaTime);
+	void CloseDoor(float DeltaTime);
+	float TotalMassOfActors();
 
 protected:
 	// Called when the game starts
 	virtual void BeginPlay() override;
 
-public:	
-	// Called every frame
-	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
-	void OpenDoor(float DeltaTime);
-	void CloseDoor(float DeltaTime);
-	float TotalMassOfActors() const;
-	void FindAudioComponent();
-	void FindPressurePlate();
-
-	// Tracks if sound has been played
-	bool OpenDoorSound = false;
-	bool CloseDoorSound = true;
-
 private:
-
 	float InitialYaw;
 	float CurrentYaw;
 
 	UPROPERTY(EditAnywhere)
-	float MassToOpenDoors = 50.f;
-
-	UPROPERTY(EditAnywhere)
-	float OpenAngle = 90.f;
-
-	float DoorLastOpened = 0.f;
-
-	UPROPERTY(EditAnywhere)
-	float DoorOpenSpeed = 0.8f;
-
-	UPROPERTY(EditAnywhere)
-	float DoorCloseDelay = 0.5f;
-
-	UPROPERTY(EditAnywhere)
-	float DoorCloseSpeed = 2.f;
+	float TargetYaw = 90.f;
 
 	UPROPERTY(EditAnywhere)
 	ATriggerVolume* PressurePlate = nullptr;
+	
+	float LastOpened = 0.f;
+
+	UPROPERTY(EditAnywhere)
+	float Delay = 2.f;
+
+	UPROPERTY(EditAnywhere)
+	float OpenSpeed = .5f;
+
+	UPROPERTY(EditAnywhere)
+	float CloseSpeed = 2.f;
+
+	UPROPERTY(EditAnywhere)
+	float MassToOpenDoor = 50.f;
 
 	UPROPERTY()
-	UAudioComponent* AudioComponent = nullptr;
+	UAudioComponent* DoorAudio = nullptr;
+
+	bool OpenSound = false;
+	bool CloseSound = true;
 };

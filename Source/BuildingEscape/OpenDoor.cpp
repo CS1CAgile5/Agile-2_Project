@@ -1,11 +1,6 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 #include "OpenDoor.h"
-#include "Components/AudioComponent.h"
-#include "Components/PrimitiveComponent.h"
-#include "Engine/World.h"
-#include "GameFramework/PlayerController.h"
-#include "GameFramework/Actor.h"
 
 #define OUT
 // Sets default values for this component's properties
@@ -22,99 +17,113 @@ UOpenDoor::UOpenDoor()
 void UOpenDoor::BeginPlay()
 {
 	Super::BeginPlay();
+	
+	//Intialize Yaw variables 
 	InitialYaw = GetOwner()->GetActorRotation().Yaw;
 	CurrentYaw = InitialYaw;
-	OpenAngle += InitialYaw;
+	TargetYaw += InitialYaw;
 
+	//Finds pressure plate attached
 	FindPressurePlate();
+
+	//Finds Audio Component Attached
 	FindAudioComponent();
 }
 
 void UOpenDoor::FindPressurePlate()
 {
+	//Protect from a null pointer with the pressure plates 
 	if(!PressurePlate)
 	{
-		UE_LOG(LogTemp, Error, TEXT("%s has the open door component on it, but no PressurePlate set!"), *GetOwner()->GetName());
+		//Debug UE_LOG(LogTemp, Error, TEXT("Actor %s does NOT have a pressure plate."), *GetOwner()->GetName());
+		return;
 	}
 }
 
-void UOpenDoor::FindAudioComponent()
+void UOpenDoor:: FindAudioComponent()
 {
-	AudioComponent = GetOwner()->FindComponentByClass<UAudioComponent>();
-	if (!AudioComponent)
-	{
-		UE_LOG(LogTemp, Error, TEXT("%s Missing Audio Component!"), *GetOwner()->GetName());
-	}
+	//Finds Audio Component based on class
+	DoorAudio = GetOwner()->FindComponentByClass<UAudioComponent>();
 	
-
+	//Protect from null pointer
+	if(!DoorAudio) 
+	{
+		//Debug
+		UE_LOG(LogTemp, Error, TEXT("%s does not have an Audio Component"), *GetOwner()->GetName());
+		return;
+	}
 }
 
 // Called every frame
 void UOpenDoor::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
-
-	if(TotalMassOfActors() > MassToOpenDoors)
-	{
+	
+	//Opening and Closing doors based on Mass and delay
+	if(TotalMassOfActors() > MassToOpenDoor)
+	{	
 		OpenDoor(DeltaTime);
-		DoorLastOpened = GetWorld()->GetTimeSeconds();
+		LastOpened = GetWorld()->GetTimeSeconds();
 	}
-	else
+	else 
 	{
-		if (GetWorld()->GetTimeSeconds() - DoorLastOpened > DoorCloseDelay)
+		if(GetWorld()->GetTimeSeconds() - LastOpened > Delay)
 		{
 			CloseDoor(DeltaTime);
 		}
 	}
-	
 }
 
 void UOpenDoor::OpenDoor(float DeltaTime)
 {
-	CurrentYaw = FMath::Lerp(CurrentYaw, OpenAngle, DeltaTime * DoorOpenSpeed);
+	//Open Door
+	CurrentYaw = FMath::Lerp(CurrentYaw, TargetYaw, OpenSpeed *DeltaTime);
 	FRotator DoorRotation = GetOwner()->GetActorRotation();
 	DoorRotation.Yaw = CurrentYaw;
 	GetOwner()->SetActorRotation(DoorRotation);
 
-	CloseDoorSound = false;
-	if (!AudioComponent){return;}
-	if (!OpenDoorSound)
+	//Play Open Door sound 
+	CloseSound = false;
+	if(!DoorAudio) {return;}
+	if (!OpenSound)
 	{
-		AudioComponent->Play();
-		OpenDoorSound = true;
+		DoorAudio->Play();
+		OpenSound = true;
 	}
 }
 
 void UOpenDoor::CloseDoor(float DeltaTime)
 {
-	CurrentYaw = FMath::Lerp(CurrentYaw, InitialYaw, DeltaTime * DoorCloseSpeed);
+	//Close Door 
+	CurrentYaw = FMath::Lerp(CurrentYaw, InitialYaw, CloseSpeed *DeltaTime);
 	FRotator DoorRotation = GetOwner()->GetActorRotation();
 	DoorRotation.Yaw = CurrentYaw;
 	GetOwner()->SetActorRotation(DoorRotation);
 
-	OpenDoorSound = true;
-	if (!AudioComponent){return;}
-	if (!CloseDoorSound)
+	//Play Close Door sound
+	OpenSound = false;
+	if(!DoorAudio) {return;}
+	if (!CloseSound)
 	{
-		AudioComponent->Play();
-		CloseDoorSound = true;
+		DoorAudio->Play();
+		CloseSound = true;
 	}
 }
 
-float UOpenDoor::TotalMassOfActors() const
+float UOpenDoor::TotalMassOfActors()
 {
-	float TotalMass = 0.f;
+	float TotalWeight = 0.f;
 
-	// Find All Overlapping Actors
-	TArray<AActor*> OverLappingActors;
-	if(!PressurePlate){return TotalMass;}
-	PressurePlate->GetOverlappingActors(OUT OverLappingActors);
+	//Finds all actors on the pressure plate
+	TArray<AActor*> OverlappingActors;
+	PressurePlate->GetOverlappingActors(OUT OverlappingActors);
 
-	// Add Up Their Masses
-	for (AActor* Actor : OverLappingActors)
+	//Calculates Sum of All Actors on the pressure plate
+	if(!PressurePlate) {return 0.f;}
+	for(AActor* Actor : OverlappingActors)
 	{
-		TotalMass += Actor->FindComponentByClass<UPrimitiveComponent>()->GetMass();
+		TotalWeight += Actor->FindComponentByClass<UPrimitiveComponent>()->GetMass();
 	}
 
-	return TotalMass;
+	return TotalWeight;
 }

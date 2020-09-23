@@ -4,6 +4,10 @@
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
+#include "DrawDebugHelpers.h"
+#include "Engine/World.h"
+#include "GameFramework/Actor.h"
+#include "GameFramework/PlayerController.h"
 #include "PhysicsEngine/PhysicsHandleComponent.h"
 #include "Grabber.generated.h"
 
@@ -17,36 +21,39 @@ public:
 	// Sets default values for this component's properties
 	UGrabber();
 
-	// Called every frame
+	//Set up and Check physics handle
+	void FindPhysicsHandle();
+
+	//Key binding
+	void SetUpInput();
+	
+	//Grabing and releasing component
+	void Grab();
+	void Release();
+	
+	//Called every frame
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
+	
+	// Return the first Actor within reach with physics body
+	FHitResult GetPhysicsBodyReach();
+
+	// Returns the players Position in World
+	FVector GetWorldPosition();
+
+	// Return the the players reach
+	FVector GetPlayerReach();
 
 protected:
 	// Called when the game starts
 	virtual void BeginPlay() override;
 
 private:
-
 	UPROPERTY(EditAnywhere)
-	float PlayerReach = 100.f;
-
+	float Reach = 100.f;
+	
 	UPROPERTY()
 	UPhysicsHandleComponent* PhysicsHandle = nullptr;
 
 	UPROPERTY()
-	UInputComponent* InputComponent = nullptr;
-
-	void Grab();
-	void Release();
-	void FindPhysicsHandle();
-	void SetupInputComponent();
-
-	// Return the first Actor within reach with physics body
-	FHitResult GetFirstPhysicsBodyInReach() const;
-
-	// Return the LineTraceEnd
-	FVector GetPlayerReach() const;
-
-	// Get Player Position in World
-	FVector GetPlayerWorldPos() const;
-		
+	UInputComponent* InputComp = nullptr;
 };
